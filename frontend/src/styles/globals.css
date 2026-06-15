@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply font-sans bg-white antialiased; }
+  /* Brand headlines: Inter 700-740, tight tracking (HANDOFF.md §3) */
+  h1,h2,h3 { @apply font-sans font-bold tracking-headline; }
+}
+
+@layer components {
+  /* blue = trust/primary structure */
+  .btn-primary { @apply bg-brand-blue text-white px-6 py-3 rounded-[9px] font-semibold text-sm transition-all hover:bg-brand-blueDark active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed; }
+  /* green = savings / compare / book actions */
+  .btn-green { @apply bg-brand-green text-white px-6 py-3 rounded-[9px] font-semibold text-sm transition-all hover:bg-brand-greenDark active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-secondary { @apply bg-brand-ink text-white px-6 py-3 rounded-[9px] font-semibold text-sm transition-all hover:bg-[#101D2A] active:scale-95; }
+  .btn-outline { @apply border-2 border-brand-blue text-brand-blue px-6 py-3 rounded-[9px] font-semibold text-sm transition-all hover:bg-brand-blue hover:text-white active:scale-95; }
+  .btn-ghost { @apply text-gray-600 px-4 py-2 rounded-lg font-medium text-sm transition-all hover:bg-gray-100 active:scale-95; }
+  .input { @apply w-full border-[1.5px] border-[#D8E2EC] rounded-[10px] px-4 py-3 text-sm outline-none transition-all focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/10 placeholder:text-gray-400; }
+  .select { @apply w-full border-[1.5px] border-[#D8E2EC] rounded-[10px] px-4 py-3 text-sm outline-none transition-all focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/10 bg-white appearance-none cursor-pointer; }
+  .card { @apply bg-white border border-[#E4E8EE] rounded-xl p-6 shadow-sm; }
+  .badge { @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold; }
+  .table-row { @apply border-b border-gray-100 hover:bg-gray-50 transition-colors; }
+}
+
+/* Google PlaceAutocompleteElement (new API) — match brand input styling.
+   The element is a web component; we style its host and expose CSS vars
+   that the component reads for theming. */
+.rs-autocomplete-host gmp-place-autocomplete {
+  width: 100%;
+  --gmp-mat-color-surface: #fff;
+  --gmp-mat-color-on-surface: #1C2B3A;
+  --gmp-mat-color-primary: #155EAB;
+  --gmp-mat-color-outline: #D8E2EC;
+  font-family: 'Inter', sans-serif;
+}
+/* The dropdown of predictions renders in a top-layer; keep it readable */
+.rs-autocomplete-host { width: 100%; }

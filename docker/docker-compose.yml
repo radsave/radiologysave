@@ -1,0 +1,90 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ClearScan – Docker Compose for WSL2 (Ubuntu/Debian)
+#
+# Usage:
+#   From the project ROOT (clearscan/):
+#     docker compose -f docker/docker-compose.yml up --build
+#
+# The compose file is one level inside the project, so all relative paths
+# are written from that docker/ directory using '../' to reach project root.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: clearscan_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: clearscan_db
+      POSTGRES_USER: clearscan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearscan_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U clearscan -d clearscan_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: clearscan_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ../backend/.env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 4000
+      # Override DATABASE_URL to point at the postgres container (not localhost)
+      DATABASE_URL: postgresql://clearscan:${POSTGRES_PASSWORD:-clearscan_dev_password}@postgres:5432/clearscan_db
+      # AI features (Scan Finder + Referral Extraction) — set in backend/.env
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - '4000:4000'
+    volumes:
+      # Mount source for hot-reload in dev; node_modules stays in container
+      - ../backend:/app:delegated
+      - /app/node_modules
+    command: >
+      sh -c "npm install &&
+             npx knex migrate:latest &&
+             npx knex seed:run &&
+             npm run dev"
+
+  # ── Frontend (Vite dev server) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: clearscan_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    env_file:
+      - ../frontend/.env
+    environment:
+      VITE_API_URL: http://localhost:4000/api
+      VITE_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+    ports:
+      - '5173:5173'
+    volumes:
+      - ../frontend:/app:delegated
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+    driver: local
