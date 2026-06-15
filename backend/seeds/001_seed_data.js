@@ -334,10 +334,12 @@ exports.seed = async function (knex) {
 
   // ── Catalog: Modalities → Body Parts → Protocols ──────────────────────
   const protocolMap = {}; // name -> id
+  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const usedProtoSlugs = new Set();
   for (const cat of CATALOG) {
     const modId = uuidv4();
     await knex('modalities').insert({
-      id: modId, name: cat.modality,
+      id: modId, name: cat.modality, slug: slugify(cat.modality),
       abbreviation: cat.modality.split(' ')[0],
       color_hex: cat.color, sort_order: cat.sort, is_active: true,
     });
@@ -347,9 +349,14 @@ exports.seed = async function (knex) {
       for (const proto of body.protocols) {
         const protoId = uuidv4();
         protocolMap[proto.name] = protoId;
+        // Prefix protocol slug with modality so it's unique + readable, e.g. "mri-brain-wo-contrast"
+        let baseSlug = slugify(`${cat.modality} ${proto.name}`);
+        let slug = baseSlug, n = 2;
+        while (usedProtoSlugs.has(slug)) { slug = `${baseSlug}-${n++}`; }
+        usedProtoSlugs.add(slug);
         await knex('protocols').insert({
           id: protoId, modality_id: modId, body_part_id: bodyId,
-          name: proto.name, requires_contrast: proto.contrast, is_active: true,
+          name: proto.name, slug, requires_contrast: proto.contrast, is_active: true,
         });
       }
     }

@@ -65,6 +65,12 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Public SEO directory (centers + procedures) and sitemap
+const directoryRoutes = require('./routes/directory.routes');
+const { sitemap } = require('./controllers/directory.controller');
+app.use('/api/directory', directoryRoutes);
+app.get('/sitemap.xml', sitemap);
+
 // Health check
 app.get('/api/health', async (req, res) => {
   try {

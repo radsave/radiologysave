@@ -363,6 +363,8 @@ export default function LandingPage() {
               <div>
                 <h4 className="text-white text-[13px] font-semibold uppercase tracking-wider mb-3">Patients</h4>
                 <Link to="/search" className="block text-[#8E9AA6] hover:text-white text-sm mb-2 transition-colors">Find a Scan</Link>
+                <Link to="/centers" className="block text-[#8E9AA6] hover:text-white text-sm mb-2 transition-colors">Imaging Centers</Link>
+                <Link to="/procedures" className="block text-[#8E9AA6] hover:text-white text-sm mb-2 transition-colors">Procedures & Prices</Link>
                 <a href="#how-it-works" className="block text-[#8E9AA6] hover:text-white text-sm mb-2 transition-colors">How It Works</a>
                 <Link to="/login" className="block text-[#8E9AA6] hover:text-white text-sm transition-colors">Sign In</Link>
               </div>

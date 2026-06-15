@@ -81,6 +81,16 @@ const createCenter = asyncHandler(async (req, res) => {
       .catch(() => {});
   }
 
+  // Notify search engines that the sitemap changed so the new center page
+  // (/centers/:slug, server-rendered) gets discovered and crawled promptly.
+  // Fire-and-forget; never blocks or fails creation.
+  const publicUrl = process.env.PUBLIC_URL || process.env.FRONTEND_URL;
+  if (publicUrl && process.env.NODE_ENV === 'production') {
+    const sitemapUrl = encodeURIComponent(`${publicUrl}/sitemap.xml`);
+    // Google deprecated its ping endpoint in 2023; Bing still supports it.
+    fetch(`https://www.bing.com/ping?sitemap=${sitemapUrl}`).catch(() => {});
+  }
+
   res.status(201).json({ message: 'Imaging center created', center });
 });
 

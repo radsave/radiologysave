@@ -9,6 +9,10 @@ import BookingPage from './pages/patient/BookingPage';
 import BookingReceivedPage from './pages/patient/BookingReceivedPage';
 import PaymentPage from './pages/patient/PaymentPage';
 import ReferralUploadPage from './pages/patient/ReferralUploadPage';
+import CentersDirectoryPage from './pages/public/CentersDirectoryPage';
+import CenterDetailPage from './pages/public/CenterDetailPage';
+import ProceduresDirectoryPage from './pages/public/ProceduresDirectoryPage';
+import ProcedureDetailPage from './pages/public/ProcedureDetailPage';
 import BookingSuccessPage from './pages/patient/BookingSuccessPage';
 import AccountPage from './pages/patient/AccountPage';
 import LoginPage from './pages/patient/LoginPage';
@@ -53,6 +57,10 @@ export default function App() {
         <Route element={<PatientLayout />}>
           <Route path="/classic" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/centers" element={<CentersDirectoryPage />} />
+          <Route path="/centers/:slug" element={<CenterDetailPage />} />
+          <Route path="/procedures" element={<ProceduresDirectoryPage />} />
+          <Route path="/procedures/:slug" element={<ProcedureDetailPage />} />
           <Route path="/booking" element={<BookingPage />} />
           <Route path="/booking/received" element={<BookingReceivedPage />} />
           <Route path="/pay/:id" element={<PaymentPage />} />

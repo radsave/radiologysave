@@ -48,6 +48,13 @@ export const paymentAPI = {
   getSession: (sessionId) => api.get(`/payments/session/${sessionId}`),
 };
 
+export const directoryAPI = {
+  listCenters: () => api.get('/directory/centers'),
+  getCenter: (slug) => api.get(`/directory/centers/${slug}`),
+  listProcedures: () => api.get('/directory/procedures'),
+  getProcedure: (slug) => api.get(`/directory/procedures/${slug}`),
+};
+
 export const appointmentAPI = {
   // Step 1: request an appointment (no payment)
   book: (data) => api.post('/appointments/book', data),
