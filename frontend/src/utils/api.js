@@ -54,6 +54,9 @@ export const appointmentAPI = {
   mine: () => api.get('/appointments/my'),
   get: (id) => api.get(`/appointments/${id}`),
   confirm: (code) => api.get(`/appointments/confirm/${code}`),
+  // Secure referral upload via tokenized email link
+  getUploadInfo: (token) => api.get(`/appointments/upload/${token}`),
+  uploadReferral: (token, data) => api.post(`/appointments/upload/${token}`, data),
 };
 
 export const authAPI = {

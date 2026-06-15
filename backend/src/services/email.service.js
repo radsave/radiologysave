@@ -280,6 +280,25 @@ function apptSummaryCard(appt) {
 
 const WINDOW_LABEL = { morning: 'Morning (8am–12pm)', afternoon: 'Afternoon (12pm–5pm)' };
 
+// Renders a "upload your physician referral" callout — only when one isn't on file.
+function referralUploadBlock(appt) {
+  if (appt.has_referral) return '';
+  const base = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const url = `${base}/upload-referral/${appt.referral_upload_token}`;
+  return `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background:#FFF7ED;border:1px solid #FCD9B6;border-radius:12px;margin:24px 0 0;">
+      <tr><td style="padding:18px 22px;">
+        <p style="margin:0 0 6px;font-size:14px;font-weight:700;color:#9A5B1E;">Action needed: physician's order required</p>
+        <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#9A5B1E;">
+          All imaging studies require a physician's order/referral. Please upload yours soon
+          using the secure link below so your appointment can proceed.
+        </p>
+        <a href="${url}" style="display:inline-block;background:${BRAND.blue};color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:11px 22px;border-radius:9px;">Upload physician referral</a>
+        <p style="margin:12px 0 0;font-size:12px;color:#9A5B1E;word-break:break-all;">Or paste this link: ${url}</p>
+      </td></tr>
+    </table>`;
+}
+
 // 1. Booking received — appointment is now pending_confirmation
 async function sendBookingReceivedEmail(appt) {
   const prettyDate = appt.preferred_date
@@ -300,6 +319,7 @@ async function sendBookingReceivedEmail(appt) {
       You'll receive a confirmation email with your exact time and a secure payment link.
       No payment is needed yet.
     </p>
+    ${referralUploadBlock(appt)}
   `;
   return send({
     to: appt.patient_email,
@@ -344,6 +364,7 @@ async function sendAppointmentConfirmedEmail(appt, payUrl) {
       Or paste this link into your browser:<br/>
       <a href="${payUrl}" style="color:${BRAND.blue};word-break:break-all;">${payUrl}</a>
     </p>
+    ${referralUploadBlock(appt)}
   `;
   return send({
     to: appt.patient_email,

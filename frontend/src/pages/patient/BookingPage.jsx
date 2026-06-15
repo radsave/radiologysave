@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Shield, Clock, Loader2, CheckCircle, Sparkles, Calendar } from 'lucide-react';
+import { ArrowLeft, CreditCard, Shield, Clock, Loader2, CheckCircle, Sparkles, Calendar, AlertCircle } from 'lucide-react';
 import { appointmentAPI } from '../../utils/api';
 import { useAuthStore } from '../../hooks/useAuth';
 import ReferralUpload from '../../components/patient/ReferralUpload';
@@ -26,8 +26,34 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [extractedNote, setExtractedNote] = useState('');
+  const [showReferralWarning, setShowReferralWarning] = useState(false);
 
-  // Pre-fill form fields from AI referral extraction
+  // Actually submits the booking
+  const doBooking = async () => {
+    setError(''); setLoading(true); setShowReferralWarning(false);
+    try {
+      const { data } = await appointmentAPI.book({
+        pricing_id: result.pricing_id,
+        protocol_id: result.protocol_id,
+        center_id: result.center_id,
+        ...form,
+      });
+      navigate(`/booking/received?confirmation=${data.confirmation_number}`);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Unable to submit your request. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // If no referral is marked as ready, require acknowledgement first
+    if (!form.has_referral) {
+      setShowReferralWarning(true);
+      return;
+    }
+    doBooking();
+  };
   const handleExtracted = (extraction, matchedProtocol) => {
     setForm(f => ({
       ...f,
@@ -58,24 +84,6 @@ export default function BookingPage() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(''); setLoading(true);
-    try {
-      const { data } = await appointmentAPI.book({
-        pricing_id: result.pricing_id,
-        protocol_id: result.protocol_id,
-        center_id: result.center_id,
-        ...form,
-      });
-      // No payment yet — go to the "request received" page
-      navigate(`/booking/received?confirmation=${data.confirmation_number}`);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Unable to submit your request. Please try again.');
-      setLoading(false);
-    }
   };
 
   return (
@@ -211,6 +219,35 @@ export default function BookingPage() {
           </form>
         </div>
       </div>
+
+      {/* Blocking acknowledgement: no referral uploaded at booking */}
+      {showReferralWarning && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="w-12 h-12 rounded-full bg-[#FFF7ED] flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-[#D97917]" />
+            </div>
+            <h3 className="text-lg font-bold text-brand-ink mb-2">Before you continue</h3>
+            <p className="text-sm text-brand-body mb-3 leading-relaxed">
+              You haven't added a physician's order/referral. All imaging studies require one —
+              please <b className="text-brand-ink">upload your physician's order/referral soon</b>.
+              We'll email you a secure link to upload it.
+            </p>
+            <p className="text-sm text-brand-body mb-5 leading-relaxed">
+              Also note: once we confirm your appointment time, <b className="text-brand-ink">payment of
+              ${result ? Number(result.price).toFixed(2) : 'the amount due'} must be completed within 24 hours</b>,
+              or the appointment will be cancelled.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowReferralWarning(false)} className="btn-ghost text-sm">Go back</button>
+              <button onClick={doBooking} disabled={loading} className="btn-primary text-sm flex items-center gap-2">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                I understand — submit request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

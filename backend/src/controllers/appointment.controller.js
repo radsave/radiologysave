@@ -1,9 +1,14 @@
 const db = require('../config/database');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { asyncHandler } = require('../middleware/error.middleware');
 const {
   sendBookingReceivedEmail, sendAppointmentConfirmedEmail,
 } = require('../services/email.service');
+
+function generateUploadToken() {
+  return crypto.randomBytes(32).toString('hex'); // 64-char unguessable token
+}
 
 function generateConfirmationNumber() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -56,6 +61,7 @@ const bookAppointment = asyncHandler(async (req, res) => {
 
   const appointmentId = uuidv4();
   const confirmationNumber = generateConfirmationNumber();
+  const uploadToken = generateUploadToken();
   await db('appointments').insert({
     id: appointmentId,
     confirmation_number: confirmationNumber,
@@ -71,6 +77,7 @@ const bookAppointment = asyncHandler(async (req, res) => {
     amount_charged: pricing.price,
     referring_physician: referring_physician || null,
     has_referral: has_referral || false,
+    referral_upload_token: uploadToken,
     preferred_date,
     preferred_window: preferred_window || null,
     special_notes: special_notes || null,
@@ -141,4 +148,56 @@ const confirmAppointment = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { bookAppointment, confirmAppointment, getEnrichedAppointment, generateConfirmationNumber };
+/**
+ * Token-based appointment lookup for the secure upload page (no auth).
+ * GET /api/appointments/upload/:token
+ */
+const getAppointmentByUploadToken = asyncHandler(async (req, res) => {
+  const appt = await db('appointments as a')
+    .join('imaging_centers as ic', 'ic.id', 'a.center_id')
+    .join('protocols as p', 'p.id', 'a.protocol_id')
+    .join('modalities as m', 'm.id', 'p.modality_id')
+    .where('a.referral_upload_token', req.params.token)
+    .select(
+      'a.id', 'a.confirmation_number', 'a.patient_first_name', 'a.patient_last_name',
+      'a.has_referral', 'a.referral_uploaded_at', 'a.status',
+      'ic.name as center_name', 'p.name as protocol_name', 'm.name as modality_name'
+    )
+    .first();
+  if (!appt) return res.status(404).json({ error: 'Invalid or expired upload link.' });
+  res.json({ appointment: appt });
+});
+
+/**
+ * Upload a referral via the secure token link (no auth).
+ * Body: { file_data (base64 data URL), file_name }
+ * POST /api/appointments/upload/:token
+ */
+const uploadReferralByToken = asyncHandler(async (req, res) => {
+  const { file_data, file_name } = req.body;
+  if (!file_data) return res.status(400).json({ error: 'No file provided.' });
+
+  const appt = await db('appointments').where({ referral_upload_token: req.params.token }).first();
+  if (!appt) return res.status(404).json({ error: 'Invalid or expired upload link.' });
+
+  // Basic validation: only allow images / PDFs, cap size (~10MB base64 ≈ 13.3MB string)
+  const match = /^data:(image\/(png|jpe?g|webp)|application\/pdf);base64,/.exec(file_data);
+  if (!match) return res.status(400).json({ error: 'Please upload a PDF or image (PNG/JPG).' });
+  if (file_data.length > 14_000_000) return res.status(400).json({ error: 'File too large (max ~10MB).' });
+
+  // Store the data URL directly (matches existing referral_file_url usage).
+  // In production you'd push to S3/GCS and store the URL instead.
+  await db('appointments').where({ id: appt.id }).update({
+    referral_file_url: file_data,
+    has_referral: true,
+    referral_uploaded_at: db.fn.now(),
+    updated_at: db.fn.now(),
+  });
+
+  res.json({ message: 'Referral uploaded successfully.', file_name: file_name || null });
+});
+
+module.exports = {
+  bookAppointment, confirmAppointment, getEnrichedAppointment, generateConfirmationNumber,
+  getAppointmentByUploadToken, uploadReferralByToken,
+};

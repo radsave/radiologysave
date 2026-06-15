@@ -8,6 +8,7 @@ import SearchPage from './pages/patient/SearchPage';
 import BookingPage from './pages/patient/BookingPage';
 import BookingReceivedPage from './pages/patient/BookingReceivedPage';
 import PaymentPage from './pages/patient/PaymentPage';
+import ReferralUploadPage from './pages/patient/ReferralUploadPage';
 import BookingSuccessPage from './pages/patient/BookingSuccessPage';
 import AccountPage from './pages/patient/AccountPage';
 import LoginPage from './pages/patient/LoginPage';
@@ -44,6 +45,9 @@ export default function App() {
       <Routes>
         {/* RadiologySave landing page — self-contained navbar/footer per HANDOFF.md */}
         <Route path="/" element={<LandingPage />} />
+
+        {/* Secure referral upload (own layout, reached from email link) */}
+        <Route path="/upload-referral/:token" element={<ReferralUploadPage />} />
 
         {/* Patient routes (Radiology Save layout) */}
         <Route element={<PatientLayout />}>

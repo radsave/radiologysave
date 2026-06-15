@@ -21,8 +21,11 @@ exports.up = async function (knex) {
 
     // Physician referral
     table.string('referring_physician', 255);
-    table.string('referral_file_url', 500);
+    table.text('referral_file_url'); // holds a URL or a base64 data URL (can be large)
     table.boolean('has_referral').notNullable().defaultTo(false);
+    table.timestamp('referral_uploaded_at');
+    // Unguessable token for the secure upload-from-email link
+    table.string('referral_upload_token', 64);
 
     // Step 1 — patient's requested timing
     table.date('preferred_date');
@@ -30,7 +33,7 @@ exports.up = async function (knex) {
     table.text('special_notes');
 
     // Step 2 — RS confirmation
-    table.timestamp('appointment_datetime');
+    table.timestamp('appointment_datetime'); // exact confirmed slot
     table.timestamp('confirmed_at');
     table.uuid('confirmed_by').references('id').inTable('users');
 
@@ -40,7 +43,7 @@ exports.up = async function (knex) {
     table.timestamp('cancelled_at');
     table.string('cancellation_reason', 255);
 
-    // Status
+    // Status (text + CHECK so it's easy to evolve)
     table.string('status', 30).notNullable().defaultTo('pending_confirmation');
 
     // Email audit (idempotency)
@@ -56,6 +59,7 @@ exports.up = async function (knex) {
     table.timestamps(true, true);
   });
 
+  // Status CHECK constraint (named with IF NOT EXISTS guard via DO block)
   await knex.raw(`
     ALTER TABLE appointments
     ADD CONSTRAINT appointments_status_check
@@ -70,6 +74,7 @@ exports.up = async function (knex) {
     table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.uuid('appointment_id').notNullable().references('id').inTable('appointments').onDelete('CASCADE');
 
+    // Stripe data
     table.string('stripe_payment_intent_id', 255).unique();
     table.string('stripe_checkout_session_id', 255).unique();
     table.string('stripe_charge_id', 255);
@@ -83,6 +88,7 @@ exports.up = async function (knex) {
     table.string('failure_code', 100);
     table.text('failure_message');
 
+    // Raw Stripe event for audit
     table.jsonb('stripe_metadata');
 
     table.timestamps(true, true);

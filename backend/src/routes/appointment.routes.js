@@ -2,10 +2,14 @@ const router = require('express').Router();
 const db = require('../config/database');
 const { authenticate, optionalAuth } = require('../middleware/auth.middleware');
 const { asyncHandler } = require('../middleware/error.middleware');
-const { bookAppointment } = require('../controllers/appointment.controller');
+const { bookAppointment, getAppointmentByUploadToken, uploadReferralByToken } = require('../controllers/appointment.controller');
 
 // POST /api/appointments/book — Step 1: request an appointment (no payment)
 router.post('/book', optionalAuth, bookAppointment);
+
+// Secure referral upload via tokenized email link (no auth)
+router.get('/upload/:token', getAppointmentByUploadToken);
+router.post('/upload/:token', uploadReferralByToken);
 
 // Lazy-expire helper: if a confirmed appointment is past its payment window,
 // cancel it on read so stale pay links resolve correctly.
